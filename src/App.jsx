@@ -5,9 +5,37 @@ import {
 	Route,
 	Navigate,
 } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Chat from "./pages/Chat";
+
+const ProtectedRoute = ({ children }) => {
+	const { user, loading } = useAuth();
+
+	if (loading) {
+		return (
+			<div
+				style={{
+					height: "100vh",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					background: "var(--bg-primary)",
+					color: "white",
+				}}
+			>
+				<div className="animate-fade-in">Initializing Secure Session...</div>
+			</div>
+		);
+	}
+
+	if (!user) {
+		return <Navigate to="/login" />;
+	}
+
+	return children;
+};
 
 function App() {
 	return (
