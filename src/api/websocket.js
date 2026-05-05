@@ -28,7 +28,7 @@ class WebSocketManager {
 
 		try {
 			this.socket = new WebSocket(
-				`wss://whisperbox.koyeb.app/ws?token=${encodeURIComponent(token)}`,
+				`${import.meta.env.VITE_WS_URL}?token=${encodeURIComponent(token)}`,
 			);
 
 			this.socket.onopen = () => {
