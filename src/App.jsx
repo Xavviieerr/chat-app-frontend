@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Chat from "./pages/Chat";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ProtectedRoute = ({ children }) => {
 	const { user, loading } = useAuth();
@@ -55,6 +57,18 @@ function App() {
 					<Route path="*" element={<Navigate to="/" />} />
 				</Routes>
 			</Router>
+			<ToastContainer 
+				position="bottom-right"
+				autoClose={3000}
+				hideProgressBar={false}
+				newestOnTop={false}
+				closeOnClick
+				rtl={false}
+				pauseOnFocusLoss
+				draggable
+				pauseOnHover
+				theme="dark"
+			/>
 		</AuthProvider>
 	);
 }
