@@ -47,9 +47,9 @@ function App() {
 					<Route
 						path="/"
 						element={
-							//<ProtectedRoute>
-							<Chat />
-							//</ProtectedRoute>
+							<ProtectedRoute>
+								<Chat />
+							</ProtectedRoute>
 						}
 					/>
 					<Route path="*" element={<Navigate to="/" />} />
