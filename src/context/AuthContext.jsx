@@ -18,38 +18,32 @@ import {
 	arrayBufferToBase64,
 	unwrapPrivateKey,
 } from "../crypto/crypto";
+import {
+	saveToSecureStorage,
+	getFromSecureStorage,
+	clearSecureStorage,
+} from "../utils/storage";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-	// --------- State ---------
 	const [user, setUser] = useState(null);
 	const [privateKey, setPrivateKey] = useState(null);
 	const [publicKey, setPublicKey] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	// REGISTER
 	const register = async (displayName, username, password) => {
 		try {
 			setError(null);
-			console.log("📝 REGISTER: Step 1 — Generating RSA-OAEP keypair...");
 			const { publicKey: pubKey, privateKey: privKey } =
 				await generateRSAKeyPair();
 
-			console.log("📝 REGISTER: Step 2 — Generating PBKDF2 salt...");
 			const salt = generateSalt();
-
-			console.log("📝 REGISTER: Step 3 — Deriving wrapping key...");
 			const wrappingKey = await deriveWrappingKey(password, salt);
-
-			console.log("📝 REGISTER: Step 4 — Wrapping private key...");
 			const wrappedPrivateKey = await wrapPrivateKey(privKey, wrappingKey);
-
-			console.log("📝 REGISTER: Step 5 — Exporting public key...");
 			const publicKeyBase64 = await exportPublicKey(pubKey);
 
-			console.log("📝 REGISTER: Step 6 — Sending to server...");
 			const res = await authApi.register({
 				display_name: displayName,
 				username,
@@ -64,15 +58,16 @@ export const AuthProvider = ({ children }) => {
 			localStorage.setItem("access_token", access_token);
 			localStorage.setItem("refresh_token", refresh_token);
 
+			// Persist user data locally
+			await saveToSecureStorage("cached_user", userData);
+
 			setPrivateKey(privKey);
 			setPublicKey(pubKey);
 			setUser(userData);
 			wsManager.connect(access_token);
 
-			console.log("✅ Registration successful");
 			return userData;
 		} catch (err) {
-			console.error("❌ Registration failed:", err);
 			setError(
 				err.response?.data?.detail || err.message || "Registration failed",
 			);
@@ -80,18 +75,18 @@ export const AuthProvider = ({ children }) => {
 		}
 	};
 
-	// LOGIN
 	const login = async (username, password) => {
 		try {
 			setError(null);
-			console.log("🔓 LOGIN: Step 1 — Authenticating...");
 			const res = await authApi.login({ username, password });
 			const { access_token, refresh_token, user: userData } = res.data;
 
 			localStorage.setItem("access_token", access_token);
 			localStorage.setItem("refresh_token", refresh_token);
 
-			console.log("🔓 LOGIN: Step 2 — Restoring session...");
+			// Persist user data locally
+			await saveToSecureStorage("cached_user", userData);
+
 			const saltBuffer = base64ToArrayBuffer(userData.pbkdf2_salt);
 			const wrappingKey = await deriveWrappingKey(password, saltBuffer);
 			const unwrappedPrivateKey = await unwrapPrivateKey(
@@ -106,10 +101,8 @@ export const AuthProvider = ({ children }) => {
 			setUser(userData);
 			wsManager.connect(access_token);
 
-			console.log("✅ Login successful");
 			return userData;
 		} catch (err) {
-			console.error("❌ Login failed:", err);
 			setError(err.response?.data?.detail || err.message || "Login failed");
 			throw err;
 		}
@@ -122,18 +115,18 @@ export const AuthProvider = ({ children }) => {
 				await authApi.logout(refreshToken);
 			}
 		} catch (e) {
-			console.warn("Logout API call failed:", e);
+			// Ignore logout errors
 		}
 
 		localStorage.removeItem("access_token");
 		localStorage.removeItem("refresh_token");
+		await clearSecureStorage();
 
 		setUser(null);
 		setPrivateKey(null);
 		setPublicKey(null);
 		setError(null);
 		wsManager.disconnect();
-		console.log("✅ Logout complete");
 	};
 
 	const isCheckingAuth = useRef(false);
@@ -148,16 +141,25 @@ export const AuthProvider = ({ children }) => {
 
 		isCheckingAuth.current = true;
 		try {
-			console.log("🔍 AUTH_CHECK: Verifying access token...");
+			// Try loading from cache first for instant UI
+			const cachedUser = await getFromSecureStorage("cached_user");
+			if (cachedUser) {
+				setUser(cachedUser);
+				wsManager.connect(token);
+				setLoading(false);
+			}
+
+			// Verify session in background
 			const res = await authApi.getMe();
-			setUser(res.data);
-
-			const latestToken = localStorage.getItem("access_token");
-			wsManager.connect(latestToken);
-
-			console.log("✅ Auth check passed");
+			const latestUser = res.data;
+			
+			setUser(latestUser);
+			await saveToSecureStorage("cached_user", latestUser);
+			
+			if (!wsManager.socket || wsManager.socket.readyState !== WebSocket.OPEN) {
+				wsManager.connect(localStorage.getItem("access_token"));
+			}
 		} catch (err) {
-			console.error("❌ Auth check failed:", err);
 			await logout();
 		} finally {
 			setLoading(false);
@@ -188,7 +190,6 @@ export const AuthProvider = ({ children }) => {
 	const unlockPrivateKey = async (password) => {
 		try {
 			if (!user) throw new Error("No user loaded");
-			console.log("🔓 UNLOCK: Restoring private key...");
 
 			const saltBuffer = base64ToArrayBuffer(user.pbkdf2_salt);
 			const wrappingKey = await deriveWrappingKey(password, saltBuffer);
@@ -198,10 +199,8 @@ export const AuthProvider = ({ children }) => {
 			);
 
 			setPrivateKey(unwrappedKey);
-			console.log("✅ Private key restored to memory");
 			return true;
 		} catch (err) {
-			console.error("❌ Unlock failed:", err);
 			return false;
 		}
 	};

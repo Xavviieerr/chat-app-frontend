@@ -24,7 +24,7 @@ const Chat = () => {
 				const response = await messagesApi.getConversations();
 				setConversations(response.data);
 			} catch (err) {
-				console.error("Failed to fetch conversations", err);
+				// Silently fail or handle UI-wise
 			}
 		};
 		fetchConversations();
@@ -57,7 +57,7 @@ const Chat = () => {
 
 					setMessages(decryptedMessages.reverse());
 				} catch (err) {
-					console.error("Failed to fetch messages", err);
+					// Silently fail
 				} finally {
 					setLoading(false);
 				}
@@ -109,7 +109,7 @@ const Chat = () => {
 					const response = await usersApi.searchUsers(searchQuery);
 					setSearchResults(response.data);
 				} catch (err) {
-					console.error("Search failed", err);
+					// Silently fail
 				}
 			}, 300);
 			return () => clearTimeout(delayDebounceFn);
@@ -120,10 +120,10 @@ const Chat = () => {
 
 	const handleSendMessage = async (e) => {
 		e.preventDefault();
-		if (!newMessage.trim() || !activeChat || !privateKey) return;
+		const trimmedMessage = newMessage.trim();
+		if (!trimmedMessage || !activeChat || !privateKey) return;
 
 		const recipientId = activeChat.user_id || activeChat.id;
-		const text = newMessage;
 		setNewMessage("");
 
 		try {
@@ -136,7 +136,7 @@ const Chat = () => {
 			);
 
 			const payload = await cryptoUtils.encryptMessage(
-				text,
+				trimmedMessage,
 				recipientPublicKey,
 				senderPublicKey,
 			);
@@ -151,12 +151,12 @@ const Chat = () => {
 				{
 					id: Date.now().toString(),
 					from_user_id: user.id,
-					plaintext: text,
+					plaintext: trimmedMessage,
 					created_at: new Date().toISOString(),
 				},
 			]);
 		} catch (err) {
-			console.error("Failed to send message", err);
+			// Silent error for UI cleanliness, though we could add a toast here
 		}
 	};
 

@@ -13,6 +13,16 @@ const Login = () => {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		setError("");
+
+		if (!username.trim()) {
+			setError("Username is required.");
+			return;
+		}
+		if (!password) {
+			setError("Password is required.");
+			return;
+		}
+
 		setLoading(true);
 		try {
 			await login(username, password);

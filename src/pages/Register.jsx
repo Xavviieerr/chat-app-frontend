@@ -14,15 +14,30 @@ const Register = () => {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		setError("");
+
+		// Validation
+		if (displayName.trim().length < 2) {
+			setError("Display name must be at least 2 characters long.");
+			return;
+		}
+		if (username.trim().length < 3) {
+			setError("Username must be at least 3 characters long.");
+			return;
+		}
+		if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+			setError("Username can only contain letters, numbers, and underscores.");
+			return;
+		}
+		if (password.length < 8) {
+			setError("Password must be at least 8 characters long.");
+			return;
+		}
+
 		setLoading(true);
 		try {
 			await register(displayName, username, password);
 			navigate("/");
 		} catch (err) {
-			console.error(
-				err.response?.data?.detail ||
-					"Registration failed. Username might be taken.",
-			);
 			setError(
 				err.response?.data?.detail ||
 					"Registration failed. Username might be taken.",
