@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-	baseURL: "https://whisperbox.koyeb.app",
+	baseURL: import.meta.env.VITE_API_URL,
 	headers: {
 		"Content-Type": "application/json",
 	},
@@ -36,7 +36,7 @@ api.interceptors.response.use(
 				const refreshToken = localStorage.getItem("refresh_token");
 				if (!refreshToken) throw new Error("No refresh token available");
 
-				const response = await axios.post("https://whisperbox.koyeb.app/auth/refresh", {
+				const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
 					refresh_token: refreshToken,
 				});
 
