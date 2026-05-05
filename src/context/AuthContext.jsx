@@ -23,6 +23,7 @@ import {
 	getFromSecureStorage,
 	clearSecureStorage,
 } from "../utils/storage";
+import { toast } from "react-toastify";
 
 const AuthContext = createContext();
 
@@ -66,11 +67,12 @@ export const AuthProvider = ({ children }) => {
 			setUser(userData);
 			wsManager.connect(access_token);
 
+			toast.success("Welcome to WhisperBox!");
 			return userData;
 		} catch (err) {
-			setError(
-				err.response?.data?.detail || err.message || "Registration failed",
-			);
+			const errMsg = err.response?.data?.detail || err.message || "Registration failed";
+			setError(errMsg);
+			toast.error(errMsg);
 			throw err;
 		}
 	};
@@ -101,9 +103,12 @@ export const AuthProvider = ({ children }) => {
 			setUser(userData);
 			wsManager.connect(access_token);
 
+			toast.success(`Welcome back, ${userData.display_name}!`);
 			return userData;
 		} catch (err) {
-			setError(err.response?.data?.detail || err.message || "Login failed");
+			const errMsg = err.response?.data?.detail || err.message || "Login failed";
+			setError(errMsg);
+			toast.error(errMsg);
 			throw err;
 		}
 	};
@@ -127,6 +132,7 @@ export const AuthProvider = ({ children }) => {
 		setPublicKey(null);
 		setError(null);
 		wsManager.disconnect();
+		toast.info("Logged out safely.");
 	};
 
 	const isCheckingAuth = useRef(false);
@@ -199,8 +205,10 @@ export const AuthProvider = ({ children }) => {
 			);
 
 			setPrivateKey(unwrappedKey);
+			toast.success("Messages decrypted successfully!");
 			return true;
 		} catch (err) {
+			toast.error("Invalid password. Decryption failed.");
 			return false;
 		}
 	};

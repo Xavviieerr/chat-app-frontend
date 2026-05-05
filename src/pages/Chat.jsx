@@ -5,6 +5,7 @@ import * as usersApi from "../api/users";
 import * as cryptoUtils from "../crypto/crypto";
 import wsManager from "../api/websocket";
 import UnlockScreen from "./UnlockScreen";
+import { toast } from "react-toastify";
 
 const Chat = () => {
 	const { user, privateKey, logout, loading: authLoading } = useAuth();
@@ -81,6 +82,13 @@ const Chat = () => {
 							privateKey,
 						);
 						setMessages((prev) => [...prev, { ...event, plaintext }]);
+						
+						// Show toast if message is from another user
+						if (event.from_user_id !== user.id) {
+							toast.info(`New message from ${activeChat.display_name}`, {
+								icon: "💬"
+							});
+						}
 					} catch (e) {
 						setMessages((prev) => [
 							...prev,
@@ -156,7 +164,7 @@ const Chat = () => {
 				},
 			]);
 		} catch (err) {
-			// Silent error for UI cleanliness, though we could add a toast here
+			toast.error("Failed to encrypt or send message.");
 		}
 	};
 
